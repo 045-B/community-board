@@ -37,6 +37,8 @@ let selectedCategory = '전체글';
 let searchTerm = '';
 let currentPage = 1;
 let selectedPost = null;
+let retainedImageUrls = [];
+let pendingImageFiles = [];
 let memberCount = null;
 
 const $ = (selector) => document.querySelector(selector);
@@ -172,6 +174,41 @@ function renderTags(tags) {
   return normalizeTags(tags).map((tag) => `<span class="tag-chip">#${escapeHtml(tag)}</span>`).join('');
 }
 
+function renderImageEditor() {
+  const existing = retainedImageUrls.map((url, index) => `
+    <div class="image-editor-item">
+      <img src="${escapeHtml(url)}" alt="첨부 이미지 미리보기">
+      <button type="button" data-remove-existing-image="${index}">삭제</button>
+    </div>
+  `);
+  const pending = pendingImageFiles.map((file, index) => `
+    <div class="image-editor-item is-pending">
+      <span>${escapeHtml(file.name)}</span>
+      <button type="button" data-remove-pending-image="${index}">삭제</button>
+    </div>
+  `);
+  $('#imageEditorList').innerHTML = [...existing, ...pending].join('');
+}
+
+async function uploadPendingImages() {
+  if (!pendingImageFiles.length) return [...retainedImageUrls];
+  if (!supabase || !currentUser) throw new Error('로그인 후 이미지를 업로드할 수 있습니다.');
+  const imageUrls = [...retainedImageUrls];
+  for (const file of pendingImageFiles) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-');
+    const path = `${currentUser.id}/${crypto.randomUUID()}-${safeName}`;
+    const { error } = await supabase.storage.from('community-images').upload(path, file, {
+      cacheControl: '31536000',
+      contentType: file.type,
+      upsert: false
+    });
+    if (error) throw error;
+    const { data } = supabase.storage.from('community-images').getPublicUrl(path);
+    imageUrls.push(data.publicUrl);
+  }
+  return imageUrls;
+}
+
 function renderCategories() {
   const counts = Object.fromEntries(categories.map(({ name }) => [name, posts.filter((post) => post.category === name).length]));
   $('#categoryList').innerHTML = [
@@ -188,7 +225,7 @@ function renderPosts() {
   $('#postList').innerHTML = pagePosts.map((post) => `
     <div class="post-row post-item ${post.is_notice ? 'is-notice' : ''}" role="row" tabindex="0" data-post-id="${escapeHtml(post.id)}">
       <span class="post-category" role="cell">${post.is_notice ? '공지' : escapeHtml(post.category)}</span>
-      <span class="post-title" role="cell"><span class="post-title-text">${post.is_notice ? '<span class="pin">●</span>' : ''}${escapeHtml(post.title)}</span>${post.tags?.length ? `<span class="post-tags">${renderTags(post.tags)}</span>` : ''}</span>
+      <span class="post-title" role="cell"><span class="post-title-text">${post.is_notice ? '<span class="pin">●</span>' : ''}${post.image_urls?.length ? '<span class="image-indicator">▣</span>' : ''}${escapeHtml(post.title)}</span>${post.tags?.length ? `<span class="post-tags">${renderTags(post.tags)}</span>` : ''}</span>
       <span class="post-author" role="cell">${escapeHtml(post.author_name)}</span>
       <span class="post-date" role="cell">${formatDate(post.created_at)}</span>
       <span class="post-views" role="cell">${Number(post.view_count || 0).toLocaleString('ko-KR')}</span>
@@ -258,6 +295,10 @@ function openEditor(post = null) {
   $('#postAuthor').readOnly = Boolean(isConfigured && currentProfile?.display_name);
   $('#postTitle').value = post?.title || '';
   $('#postTags').value = normalizeTags(post?.tags).map((tag) => `#${tag}`).join(' ');
+  retainedImageUrls = Array.isArray(post?.image_urls) ? [...post.image_urls] : [];
+  pendingImageFiles = [];
+  $('#postImages').value = '';
+  renderImageEditor();
   $('#postContent').value = post?.content || '';
   $('#postNotice').checked = Boolean(post?.is_notice);
   $('#postNotice').disabled = Boolean(isConfigured && !roleCanEditAll());
@@ -281,6 +322,9 @@ async function openViewer(id) {
   $('#viewerMeta').textContent = `${selectedPost.author_name} · ${formatFullDate(selectedPost.created_at)} · 조회 ${Number(selectedPost.view_count || 0).toLocaleString('ko-KR')}`;
   $('#viewerTags').innerHTML = renderTags(selectedPost.tags);
   $('#viewerTags').hidden = normalizeTags(selectedPost.tags).length === 0;
+  const imageUrls = Array.isArray(selectedPost.image_urls) ? selectedPost.image_urls : [];
+  $('#viewerImages').innerHTML = imageUrls.map((url) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(selectedPost.title)} 첨부 이미지" loading="lazy">`).join('');
+  $('#viewerImages').hidden = imageUrls.length === 0;
   $('#viewerContent').textContent = selectedPost.content;
   $('#editPostButton').hidden = !canEdit(selectedPost);
   $('#deletePostButton').hidden = !canDelete(selectedPost);
@@ -306,6 +350,7 @@ async function savePost(event) {
     return;
   }
   try {
+    payload.image_urls = await uploadPendingImages();
     if (supabase) {
       if (id) {
         if (!canEdit(original)) throw new Error('수정 권한이 없습니다.');
@@ -389,6 +434,22 @@ function bindEvents() {
   });
   $('#writeButton').addEventListener('click', () => openEditor());
   $('#postForm').addEventListener('submit', savePost);
+  $('#postImages').addEventListener('change', (event) => {
+    const available = Math.max(0, 5 - retainedImageUrls.length - pendingImageFiles.length);
+    const selected = [...event.target.files];
+    const valid = selected.filter((file) => file.type.startsWith('image/') && file.size <= 8 * 1024 * 1024).slice(0, available);
+    pendingImageFiles.push(...valid);
+    if (valid.length !== selected.length) $('#editorMessage').textContent = '이미지는 최대 5장, 한 장당 8MB 이하로 올려주세요.';
+    event.target.value = '';
+    renderImageEditor();
+  });
+  $('#imageEditorList').addEventListener('click', (event) => {
+    const existingButton = event.target.closest('[data-remove-existing-image]');
+    const pendingButton = event.target.closest('[data-remove-pending-image]');
+    if (existingButton) retainedImageUrls.splice(Number(existingButton.dataset.removeExistingImage), 1);
+    if (pendingButton) pendingImageFiles.splice(Number(pendingButton.dataset.removePendingImage), 1);
+    if (existingButton || pendingButton) renderImageEditor();
+  });
   $('#editPostButton').addEventListener('click', () => openEditor(selectedPost));
   $('#deletePostButton').addEventListener('click', deleteSelectedPost);
   $('#loginButton').addEventListener('click', async () => {
