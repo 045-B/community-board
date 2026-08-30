@@ -11,7 +11,7 @@ create table if not exists public.community_profiles (
 
 create table if not exists public.community_posts (
   id uuid primary key default gen_random_uuid(),
-  category text not null default '자유게시판',
+  category text not null default 'ooc',
   title text not null check (char_length(title) between 1 and 100),
   content text not null check (char_length(content) between 1 and 10000),
   author_id uuid not null references auth.users(id) on delete cascade,
