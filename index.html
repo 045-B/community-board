@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="카테고리와 검색, 공동 편집 기능을 갖춘 커뮤니티 게시판">
+  <title>우리들의 아카이브</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#" aria-label="홈으로">
+        <span class="brand-mark">C</span>
+        <span><strong>우리들의 아카이브</strong><small>함께 기록하고 나누는 커뮤니티</small></span>
+      </a>
+      <div class="header-actions">
+        <button class="button button-ghost" id="loginButton" type="button">로그인</button>
+        <button class="button button-primary" id="writeButton" type="button">글쓰기</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="community-nav" aria-label="주요 메뉴">
+    <div class="header-inner nav-inner">
+      <button class="nav-item is-active" type="button" data-view="all">전체글</button>
+      <button class="nav-item" type="button" data-category="공지사항">공지</button>
+      <button class="nav-item" type="button" data-category="정보공유">정보</button>
+      <button class="nav-item" type="button" data-category="질문답변">Q&amp;A</button>
+    </div>
+  </div>
+
+  <main class="page-shell">
+    <aside class="sidebar" aria-label="게시판 카테고리">
+      <section class="sidebar-card">
+        <div class="sidebar-title"><span>COMMUNITY</span><button id="mobileCategoryToggle" type="button" aria-expanded="true">접기</button></div>
+        <nav class="category-list" id="categoryList"></nav>
+      </section>
+      <section class="sidebar-card compact-card">
+        <strong>이용 안내</strong>
+        <p>서로를 존중하며 기록을 나눠주세요. 작성자는 자신의 글을 수정할 수 있고, 편집자는 전체 글을 관리할 수 있어요.</p>
+      </section>
+    </aside>
+
+    <section class="content">
+      <section class="hero-card">
+        <div>
+          <span class="eyebrow">COMMUNITY BOARD</span>
+          <h1>같이 쓰는 작은 아카이브</h1>
+          <p>공지부터 자유로운 이야기, 자료와 질문까지 한곳에 모아보세요.</p>
+        </div>
+        <div class="hero-stats" aria-label="게시판 통계">
+          <div><strong id="postCount">0</strong><span>게시글</span></div>
+          <div><strong id="memberCount">—</strong><span>멤버</span></div>
+        </div>
+      </section>
+
+      <section class="board-card">
+        <div class="board-toolbar">
+          <div>
+            <span class="eyebrow" id="boardEyebrow">ALL POSTS</span>
+            <h2 id="boardTitle">전체글보기</h2>
+          </div>
+          <form class="search-form" id="searchForm" role="search">
+            <label class="sr-only" for="searchInput">게시글 검색</label>
+            <input id="searchInput" type="search" placeholder="제목과 내용 검색" autocomplete="off">
+            <button type="submit">검색</button>
+          </form>
+        </div>
+
+        <div class="notice-strip" id="noticeStrip" hidden></div>
+
+        <div class="post-table" role="table" aria-label="게시글 목록">
+          <div class="post-row post-head" role="row">
+            <span role="columnheader">분류</span>
+            <span role="columnheader">제목</span>
+            <span role="columnheader">작성자</span>
+            <span role="columnheader">작성일</span>
+            <span role="columnheader">조회</span>
+          </div>
+          <div id="postList"></div>
+        </div>
+        <div class="empty-state" id="emptyState" hidden>
+          <strong>아직 글이 없어요.</strong>
+          <span>첫 번째 이야기를 남겨주세요.</span>
+        </div>
+        <nav class="pagination" id="pagination" aria-label="게시글 페이지"></nav>
+      </section>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>우리들의 아카이브</span>
+    <span>GitHub Pages + Supabase</span>
+  </footer>
+
+  <dialog class="modal" id="editorDialog">
+    <form class="modal-panel editor-form" id="postForm" method="dialog">
+      <div class="modal-header">
+        <div><span class="eyebrow">WRITE</span><h2 id="editorTitle">새 글 작성</h2></div>
+        <button class="icon-button" type="button" data-close-dialog="editorDialog" aria-label="닫기">×</button>
+      </div>
+      <input type="hidden" id="postId">
+      <div class="form-grid">
+        <label>카테고리<select id="postCategory" required></select></label>
+        <label>작성자<input id="postAuthor" maxlength="20" placeholder="이름" required></label>
+      </div>
+      <label>제목<input id="postTitle" maxlength="100" placeholder="제목을 입력하세요" required></label>
+      <label>내용<textarea id="postContent" rows="12" maxlength="10000" placeholder="내용을 입력하세요" required></textarea></label>
+      <label class="check-label"><input id="postNotice" type="checkbox"> 공지글로 등록</label>
+      <div class="form-message" id="editorMessage" role="status"></div>
+      <div class="modal-actions">
+        <button class="button button-ghost" type="button" data-close-dialog="editorDialog">취소</button>
+        <button class="button button-primary" type="submit">저장하기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="viewerDialog">
+    <article class="modal-panel viewer-panel">
+      <div class="modal-header">
+        <div><span class="category-chip" id="viewerCategory"></span><h2 id="viewerTitle"></h2></div>
+        <button class="icon-button" type="button" data-close-dialog="viewerDialog" aria-label="닫기">×</button>
+      </div>
+      <div class="viewer-meta" id="viewerMeta"></div>
+      <div class="viewer-content" id="viewerContent"></div>
+      <div class="modal-actions viewer-actions">
+        <button class="button button-ghost" id="editPostButton" type="button">수정</button>
+        <button class="button button-danger" id="deletePostButton" type="button">삭제</button>
+        <button class="button button-primary" type="button" data-close-dialog="viewerDialog">목록으로</button>
+      </div>
+    </article>
+  </dialog>
+
+  <dialog class="modal" id="loginDialog">
+    <form class="modal-panel login-form" id="loginForm" method="dialog">
+      <div class="modal-header">
+        <div><span class="eyebrow">MEMBER</span><h2>이메일로 로그인</h2></div>
+        <button class="icon-button" type="button" data-close-dialog="loginDialog" aria-label="닫기">×</button>
+      </div>
+      <p>이메일로 로그인 링크를 보내드려요. Supabase를 연결하기 전에는 데모 모드로 동작합니다.</p>
+      <label>이메일<input id="loginEmail" type="email" placeholder="name@example.com" required></label>
+      <div class="form-message" id="loginMessage" role="status"></div>
+      <div class="modal-actions">
+        <button class="button button-ghost" type="button" data-close-dialog="loginDialog">취소</button>
+        <button class="button button-primary" type="submit">로그인 링크 받기</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
