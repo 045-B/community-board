@@ -106,7 +106,22 @@ async function loadProfile() {
   currentProfile = null;
   if (!supabase || !currentUser) return;
   const { data } = await supabase.from('community_profiles').select('id, display_name, role').eq('id', currentUser.id).maybeSingle();
-  currentProfile = data || { id: currentUser.id, display_name: currentUser.email?.split('@')[0] || '회원', role: 'member' };
+  if (data) {
+    currentProfile = data;
+    return;
+  }
+
+  const newProfile = {
+    id: currentUser.id,
+    display_name: currentUser.email?.split('@')[0] || '회원',
+    role: 'member'
+  };
+  const { data: createdProfile, error } = await supabase
+    .from('community_profiles')
+    .insert(newProfile)
+    .select('id, display_name, role')
+    .single();
+  currentProfile = error ? newProfile : createdProfile;
 }
 
 async function loadPosts() {
