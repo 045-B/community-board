@@ -14,6 +14,7 @@ create table if not exists public.community_posts (
   category text not null default 'ooc',
   title text not null check (char_length(title) between 1 and 100),
   tags text[] not null default '{}',
+  image_urls text[] not null default '{}',
   content text not null check (char_length(content) between 1 and 10000),
   author_id uuid not null references auth.users(id) on delete cascade,
   author_name text not null check (char_length(author_name) between 1 and 20),
@@ -102,6 +103,37 @@ create policy "community authors and admins delete posts" on public.community_po
 
 grant execute on function public.community_increment_post_views(uuid) to anon, authenticated;
 grant execute on function public.community_has_board_role(text[]) to authenticated;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'community-images',
+  'community-images',
+  true,
+  8388608,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'community images authenticated upload'
+  ) then
+    create policy "community images authenticated upload" on storage.objects
+      for insert to authenticated
+      with check (
+        bucket_id = 'community-images'
+        and (storage.foldername(name))[1] = auth.uid()::text
+      );
+  end if;
+end;
+$$;
 
 -- 편집자로 지정할 때 아래 이메일만 바꾸어 한 번 실행하세요.
 -- update public.community_profiles
