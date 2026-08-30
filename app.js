@@ -102,7 +102,14 @@ function canDelete(post) {
 async function initSupabase() {
   if (!isConfigured) return;
   const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-  supabase = createClient(boardConfig.supabaseUrl, boardConfig.supabaseAnonKey);
+  supabase = createClient(boardConfig.supabaseUrl, boardConfig.supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: window.localStorage
+    }
+  });
   const { data: { session } } = await supabase.auth.getSession();
   currentUser = session?.user || null;
   await loadProfile();
