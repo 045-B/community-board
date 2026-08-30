@@ -70,6 +70,10 @@ alter table public.community_posts enable row level security;
 create policy "community profiles public read" on public.community_profiles
   for select using (true);
 
+create policy "community members create own profile" on public.community_profiles
+  for insert to authenticated
+  with check (id = auth.uid() and role = 'member');
+
 -- 프로필 역할은 SQL Editor에서 관리자만 변경합니다.
 -- 브라우저 사용자의 역할 변경을 허용하지 않아 권한 상승을 막습니다.
 
