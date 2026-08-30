@@ -26,10 +26,9 @@ a { color: inherit; text-decoration: none; }
 .header-inner { width: min(1180px, calc(100% - 36px)); margin: 0 auto; }
 .site-header .header-inner { display: flex; align-items: center; justify-content: space-between; min-height: 74px; gap: 20px; }
 .brand { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
-.brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: #fff; background: var(--accent); font-size: 19px; font-weight: 900; box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); }
-.brand strong, .brand small { display: block; }
+.brand-logo { display: block; width: 46px; height: 46px; object-fit: contain; }
+.brand strong { display: block; }
 .brand strong { font-size: 16px; letter-spacing: -.03em; }
-.brand small { margin-top: 2px; color: var(--muted); font-size: 11px; }
 .header-actions { display: flex; gap: 8px; }
 .button { min-height: 38px; padding: 0 15px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-size: 12px; font-weight: 750; cursor: pointer; transition: transform .15s ease, border-color .15s ease, background .15s ease; }
 .button:hover { transform: translateY(-1px); border-color: #bdc3cb; }
@@ -83,15 +82,18 @@ a { color: inherit; text-decoration: none; }
 .notice-strip button + button { margin-top: 4px; padding-top: 8px; border-top: 1px solid #f4d9dc; }
 .notice-strip b { display: inline-flex; margin-right: 7px; padding: 2px 6px; border-radius: 5px; color: #fff; background: var(--notice); font-size: 9px; }
 
-.post-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) 90px 80px 52px; align-items: center; min-height: 48px; padding: 0 10px; border-bottom: 1px solid #edf0f3; gap: 8px; font-size: 11px; }
+.post-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) 90px 80px 52px; align-items: center; min-height: 54px; padding: 6px 10px; border-bottom: 1px solid #edf0f3; gap: 8px; font-size: 11px; }
 .post-head { min-height: 35px; color: #9aa1ab; background: #fafbfc; font-size: 9px; text-align: center; }
 .post-head span:nth-child(2) { text-align: left; }
 .post-item { cursor: pointer; }
 .post-item:hover { background: #fafbfc; }
 .post-category { display: inline-flex; justify-self: start; padding: 4px 7px; border-radius: 6px; color: #6f7783; background: #f0f2f4; font-size: 9px; white-space: nowrap; }
 .post-item.is-notice .post-category { color: #d84853; background: #fff0f1; }
-.post-title { min-width: 0; overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.post-title { display: grid; min-width: 0; gap: 4px; overflow: hidden; font-weight: 700; }
+.post-title-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .post-title .pin { margin-right: 6px; color: var(--notice); font-size: 9px; }
+.post-tags, .viewer-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag-chip { display: inline-flex; align-items: center; max-width: 130px; padding: 2px 6px; overflow: hidden; border-radius: 999px; color: #69717c; background: #eef0f3; font-size: 8px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .post-author, .post-date, .post-views { overflow: hidden; color: var(--muted); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .empty-state { display: grid; place-items: center; min-height: 210px; color: #9aa1aa; text-align: center; }
 .empty-state strong, .empty-state span { display: block; }
@@ -121,6 +123,8 @@ a { color: inherit; text-decoration: none; }
 .form-message { min-height: 18px; margin-top: 10px; color: var(--danger); font-size: 10px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .viewer-meta { padding-bottom: 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+.viewer-tags { margin-top: 13px; }
+.viewer-tags .tag-chip { padding: 4px 8px; font-size: 9px; }
 .viewer-content { min-height: 200px; padding: 24px 3px; color: #3d434c; font-size: 13px; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
 .category-chip { display: inline-flex; margin-bottom: 9px; padding: 4px 7px; border-radius: 6px; color: #666f7b; background: #eef0f3; font-size: 9px; }
 .login-form { width: min(450px, 100%); }
@@ -159,3 +163,4 @@ a { color: inherit; text-decoration: none; }
   .modal-panel { max-height: calc(100vh - 20px); padding: 19px 16px; border-radius: 14px; }
   .viewer-actions .button { flex: 1; padding: 0 8px; }
 }
+
