@@ -1,16 +1,25 @@
 const categories = [
-  { name: '공지사항', icon: '공지' },
-  { name: '자유게시판', icon: '자유' },
-  { name: '정보공유', icon: '정보' },
-  { name: '질문답변', icon: 'Q&A' },
+  { name: '외형 프롬프트', icon: '외형' },
+  { name: 'ooc', icon: 'OOC' },
+  { name: '유저 노트', icon: '노트' },
+  { name: '앵캐 추천', icon: '추천' },
   { name: '자료실', icon: '자료' }
 ];
 
+const legacyCategoryNames = {
+  '공지사항': '외형 프롬프트',
+  '자유게시판': 'ooc',
+  '정보공유': '유저 노트',
+  '정보 공유': '유저 노트',
+  '질문답변': '앵캐 추천',
+  '질문 답변': '앵캐 추천'
+};
+
 const seedPosts = [
-  { id: 'demo-1', category: '공지사항', title: '커뮤니티 이용 안내', content: '서로의 취향과 기록을 존중해 주세요.\n\n작성한 글은 본인이 직접 수정할 수 있으며, 편집자는 게시판 전체를 관리할 수 있습니다.', author_name: '관리자', author_id: 'demo', is_notice: true, view_count: 128, created_at: '2026-08-28T09:00:00+09:00', updated_at: '2026-08-28T09:00:00+09:00' },
-  { id: 'demo-2', category: '정보공유', title: '처음 오신 분들을 위한 게시판 사용법', content: '왼쪽 카테고리에서 원하는 게시판을 고르거나 상단 검색창에서 제목과 내용을 검색할 수 있어요.', author_name: '관리자', author_id: 'demo', is_notice: true, view_count: 83, created_at: '2026-08-27T11:30:00+09:00', updated_at: '2026-08-27T11:30:00+09:00' },
-  { id: 'demo-3', category: '자유게시판', title: '오늘의 첫 번째 기록', content: 'GitHub Pages와 Supabase를 연결하면 여러 사람이 같은 게시판에 글을 남길 수 있습니다.', author_name: '유현', author_id: 'demo', is_notice: false, view_count: 24, created_at: '2026-08-26T20:12:00+09:00', updated_at: '2026-08-26T20:12:00+09:00' },
-  { id: 'demo-4', category: '질문답변', title: '이미지도 글에 첨부할 수 있나요?', content: '다음 단계에서 Supabase Storage를 연결하면 이미지 첨부도 추가할 수 있어요.', author_name: '무헌', author_id: 'demo', is_notice: false, view_count: 17, created_at: '2026-08-25T18:40:00+09:00', updated_at: '2026-08-25T18:40:00+09:00' },
+  { id: 'demo-1', category: '외형 프롬프트', title: '커뮤니티 이용 안내', content: '서로의 취향과 기록을 존중해 주세요.\n\n작성한 글은 본인이 직접 수정할 수 있으며, 편집자는 게시판 전체를 관리할 수 있습니다.', author_name: '관리자', author_id: 'demo', is_notice: true, view_count: 128, created_at: '2026-08-28T09:00:00+09:00', updated_at: '2026-08-28T09:00:00+09:00' },
+  { id: 'demo-2', category: '유저 노트', title: '처음 오신 분들을 위한 게시판 사용법', content: '왼쪽 카테고리에서 원하는 게시판을 고르거나 상단 검색창에서 제목과 내용을 검색할 수 있어요.', author_name: '관리자', author_id: 'demo', is_notice: true, view_count: 83, created_at: '2026-08-27T11:30:00+09:00', updated_at: '2026-08-27T11:30:00+09:00' },
+  { id: 'demo-3', category: 'ooc', title: '오늘의 첫 번째 기록', content: 'GitHub Pages와 Supabase를 연결하면 여러 사람이 같은 게시판에 글을 남길 수 있습니다.', author_name: '유현', author_id: 'demo', is_notice: false, view_count: 24, created_at: '2026-08-26T20:12:00+09:00', updated_at: '2026-08-26T20:12:00+09:00' },
+  { id: 'demo-4', category: '앵캐 추천', title: '이미지도 글에 첨부할 수 있나요?', content: '다음 단계에서 Supabase Storage를 연결하면 이미지 첨부도 추가할 수 있어요.', author_name: '무헌', author_id: 'demo', is_notice: false, view_count: 17, created_at: '2026-08-25T18:40:00+09:00', updated_at: '2026-08-25T18:40:00+09:00' },
   { id: 'demo-5', category: '자료실', title: '공유 자료 모음', content: '자료의 출처와 사용 범위를 함께 적어주세요.', author_name: '아카이브', author_id: 'demo', is_notice: false, view_count: 9, created_at: '2026-08-24T14:05:00+09:00', updated_at: '2026-08-24T14:05:00+09:00' }
 ];
 
@@ -134,7 +143,10 @@ async function loadPosts() {
       supabase.from('community_profiles').select('*', { count: 'exact', head: true })
     ]);
     if (error) throw error;
-    posts = data || [];
+    posts = (data || []).map((post) => ({
+      ...post,
+      category: legacyCategoryNames[post.category] || post.category
+    }));
     memberCount = count ?? null;
   }
   renderAll();
@@ -232,7 +244,7 @@ function openEditor(post = null) {
   selectedPost = post;
   $('#editorTitle').textContent = post ? '글 수정' : '새 글 작성';
   $('#postId').value = post?.id || '';
-  $('#postCategory').value = post?.category || (selectedCategory !== '전체글' ? selectedCategory : '자유게시판');
+  $('#postCategory').value = post?.category || (selectedCategory !== '전체글' ? selectedCategory : 'ooc');
   $('#postAuthor').value = post?.author_name || currentProfile?.display_name || '';
   $('#postAuthor').readOnly = Boolean(isConfigured && currentProfile?.display_name);
   $('#postTitle').value = post?.title || '';
