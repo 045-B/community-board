@@ -12,8 +12,8 @@
   <header class="site-header">
     <div class="header-inner">
       <a class="brand" href="#" aria-label="홈으로">
-        <span class="brand-mark">C</span>
-        <span><strong>앵탐라</strong><small>함께 기록하고 나누는 커뮤니티</small></span>
+        <img class="brand-logo" src="./assets/logo.png" alt="">
+        <strong>앵탐라</strong>
       </a>
       <div class="header-actions">
         <button class="button button-ghost" id="loginButton" type="button">로그인</button>
@@ -107,6 +107,7 @@
         <label>작성자<input id="postAuthor" maxlength="20" placeholder="이름" required></label>
       </div>
       <label>제목<input id="postTitle" maxlength="100" placeholder="제목을 입력하세요" required></label>
+      <label>태그<input id="postTags" maxlength="180" placeholder="#캐릭터 #관계성 #프롬프트 (최대 8개)"></label>
       <label>내용<textarea id="postContent" rows="12" maxlength="10000" placeholder="내용을 입력하세요" required></textarea></label>
       <label class="check-label"><input id="postNotice" type="checkbox"> 공지글로 등록</label>
       <div class="form-message" id="editorMessage" role="status"></div>
@@ -124,6 +125,7 @@
         <button class="icon-button" type="button" data-close-dialog="viewerDialog" aria-label="닫기">×</button>
       </div>
       <div class="viewer-meta" id="viewerMeta"></div>
+      <div class="viewer-tags" id="viewerTags"></div>
       <div class="viewer-content" id="viewerContent"></div>
       <div class="modal-actions viewer-actions">
         <button class="button button-ghost" id="editPostButton" type="button">수정</button>
