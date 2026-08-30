@@ -215,8 +215,6 @@ function renderPagination(totalPages) {
 }
 
 function renderHeader() {
-  $('#postCount').textContent = posts.length.toLocaleString('ko-KR');
-  $('#memberCount').textContent = memberCount === null ? '—' : memberCount.toLocaleString('ko-KR');
   $('#boardTitle').textContent = searchTerm ? `'${searchTerm}' 검색 결과` : selectedCategory === '전체글' ? '전체글보기' : selectedCategory;
   $('#boardEyebrow').textContent = searchTerm ? 'SEARCH RESULT' : selectedCategory === '전체글' ? 'ALL POSTS' : 'CATEGORY';
   updateAuthButton();
