@@ -116,15 +116,16 @@ async function initSupabase() {
 async function loadProfile() {
   currentProfile = null;
   if (!supabase || !currentUser) return;
+  const authDisplayName = currentUser.user_metadata?.display_name?.trim();
   const { data } = await supabase.from('community_profiles').select('id, display_name, role').eq('id', currentUser.id).maybeSingle();
   if (data) {
-    currentProfile = data;
+    currentProfile = { ...data, display_name: authDisplayName || data.display_name };
     return;
   }
 
   const newProfile = {
     id: currentUser.id,
-    display_name: currentUser.email?.split('@')[0] || '회원',
+    display_name: authDisplayName || currentUser.email?.split('@')[0] || '회원',
     role: 'member'
   };
   const { data: createdProfile, error } = await supabase
@@ -270,7 +271,44 @@ function updateAuthButton() {
     button.textContent = '데모 모드';
     return;
   }
-  button.textContent = currentUser ? `${currentProfile?.display_name || '회원'} · 로그아웃` : '로그인';
+  button.textContent = currentUser ? `${currentProfile?.display_name || '회원'} · 프로필` : '로그인';
+}
+
+function openProfile() {
+  if (!currentUser) return;
+  $('#profileEmail').value = currentUser.email || '';
+  $('#profileDisplayName').value = currentProfile?.display_name || currentUser.email?.split('@')[0] || '';
+  $('#profileRole').textContent = currentProfile?.role || 'member';
+  $('#profileMessage').textContent = '';
+  $('#profileDialog').showModal();
+}
+
+async function saveProfile(event) {
+  event.preventDefault();
+  const displayName = $('#profileDisplayName').value.trim();
+  const message = $('#profileMessage');
+  if (!displayName || displayName.length > 20) {
+    message.textContent = '작성자 이름은 1~20자로 입력해주세요.';
+    return;
+  }
+  message.textContent = '저장 중...';
+  try {
+    const { data, error } = await supabase.auth.updateUser({ data: { display_name: displayName } });
+    if (error) throw error;
+    const { error: postsError } = await supabase
+      .from('community_posts')
+      .update({ author_name: displayName, updated_at: new Date().toISOString() })
+      .eq('author_id', currentUser.id);
+    if (postsError) throw postsError;
+    currentUser = data.user || currentUser;
+    currentProfile = { ...(currentProfile || {}), id: currentUser.id, display_name: displayName, role: currentProfile?.role || 'member' };
+    await loadPosts();
+    updateAuthButton();
+    message.textContent = '프로필을 저장했습니다.';
+    setTimeout(() => $('#profileDialog').open && $('#profileDialog').close(), 500);
+  } catch (error) {
+    message.textContent = error.message || '프로필을 저장하지 못했습니다.';
+  }
 }
 
 function setCategory(category) {
@@ -454,10 +492,15 @@ function bindEvents() {
   $('#deletePostButton').addEventListener('click', deleteSelectedPost);
   $('#loginButton').addEventListener('click', async () => {
     if (!isConfigured) return alert('현재는 데모 모드예요. config.js에 Supabase 정보를 입력하면 로그인을 사용할 수 있어요.');
-    if (currentUser) { await supabase.auth.signOut(); return; }
+    if (currentUser) { openProfile(); return; }
     $('#loginDialog').showModal();
   });
   $('#loginForm').addEventListener('submit', submitLogin);
+  $('#profileForm').addEventListener('submit', saveProfile);
+  $('#profileLogoutButton').addEventListener('click', async () => {
+    $('#profileDialog').close();
+    await supabase.auth.signOut();
+  });
   $('#mobileCategoryToggle').addEventListener('click', () => {
     const list = $('#categoryList');
     const collapsed = list.classList.toggle('is-collapsed');
