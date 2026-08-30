@@ -105,7 +105,7 @@ async function initSupabase() {
 async function loadProfile() {
   currentProfile = null;
   if (!supabase || !currentUser) return;
-  const { data } = await supabase.from('profiles').select('id, display_name, role').eq('id', currentUser.id).maybeSingle();
+  const { data } = await supabase.from('community_profiles').select('id, display_name, role').eq('id', currentUser.id).maybeSingle();
   currentProfile = data || { id: currentUser.id, display_name: currentUser.email?.split('@')[0] || '회원', role: 'member' };
 }
 
@@ -115,8 +115,8 @@ async function loadPosts() {
     memberCount = new Set(posts.map((post) => post.author_name)).size;
   } else {
     const [{ data, error }, { count }] = await Promise.all([
-      supabase.from('posts').select('*').order('is_notice', { ascending: false }).order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true })
+      supabase.from('community_posts').select('*').order('is_notice', { ascending: false }).order('created_at', { ascending: false }),
+      supabase.from('community_profiles').select('*', { count: 'exact', head: true })
     ]);
     if (error) throw error;
     posts = data || [];
@@ -233,7 +233,7 @@ async function openViewer(id) {
   selectedPost = posts.find((post) => String(post.id) === String(id));
   if (!selectedPost) return;
   if (supabase) {
-    const { error } = await supabase.rpc('increment_post_views', { post_id_value: selectedPost.id });
+    const { error } = await supabase.rpc('community_increment_post_views', { post_id_value: selectedPost.id });
     if (!error) selectedPost.view_count = Number(selectedPost.view_count || 0) + 1;
   } else {
     selectedPost.view_count = Number(selectedPost.view_count || 0) + 1;
@@ -269,10 +269,10 @@ async function savePost(event) {
     if (supabase) {
       if (id) {
         if (!canEdit(original)) throw new Error('수정 권한이 없습니다.');
-        const { error } = await supabase.from('posts').update(payload).eq('id', id);
+        const { error } = await supabase.from('community_posts').update(payload).eq('id', id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('posts').insert({ ...payload, author_id: currentUser.id });
+        const { error } = await supabase.from('community_posts').insert({ ...payload, author_id: currentUser.id });
         if (error) throw error;
       }
     } else if (id) {
@@ -292,7 +292,7 @@ async function savePost(event) {
 async function deleteSelectedPost() {
   if (!selectedPost || !canDelete(selectedPost) || !confirm('이 글을 삭제할까요?')) return;
   if (supabase) {
-    const { error } = await supabase.from('posts').delete().eq('id', selectedPost.id);
+    const { error } = await supabase.from('community_posts').delete().eq('id', selectedPost.id);
     if (error) return alert(error.message);
   } else {
     posts = posts.filter((post) => String(post.id) !== String(selectedPost.id));
@@ -386,3 +386,4 @@ async function start() {
 }
 
 start();
+
