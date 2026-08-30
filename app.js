@@ -156,9 +156,20 @@ function applyFilters() {
   const query = searchTerm.toLocaleLowerCase('ko');
   filteredPosts = posts.filter((post) => {
     const categoryMatch = selectedCategory === '전체글' || post.category === selectedCategory;
-    const textMatch = !query || `${post.title} ${post.content} ${post.author_name}`.toLocaleLowerCase('ko').includes(query);
+    const textMatch = !query || `${post.title} ${post.content} ${post.author_name} ${(post.tags || []).join(' ')}`.toLocaleLowerCase('ko').includes(query);
     return categoryMatch && textMatch;
   });
+}
+
+function normalizeTags(value) {
+  const source = Array.isArray(value) ? value : String(value || '').split(/[\s,]+/);
+  return [...new Set(source.map((tag) => String(tag).trim().replace(/^#+/, '')).filter(Boolean))]
+    .slice(0, 8)
+    .map((tag) => tag.slice(0, 24));
+}
+
+function renderTags(tags) {
+  return normalizeTags(tags).map((tag) => `<span class="tag-chip">#${escapeHtml(tag)}</span>`).join('');
 }
 
 function renderCategories() {
@@ -177,7 +188,7 @@ function renderPosts() {
   $('#postList').innerHTML = pagePosts.map((post) => `
     <div class="post-row post-item ${post.is_notice ? 'is-notice' : ''}" role="row" tabindex="0" data-post-id="${escapeHtml(post.id)}">
       <span class="post-category" role="cell">${post.is_notice ? '공지' : escapeHtml(post.category)}</span>
-      <span class="post-title" role="cell">${post.is_notice ? '<span class="pin">●</span>' : ''}${escapeHtml(post.title)}</span>
+      <span class="post-title" role="cell"><span class="post-title-text">${post.is_notice ? '<span class="pin">●</span>' : ''}${escapeHtml(post.title)}</span>${post.tags?.length ? `<span class="post-tags">${renderTags(post.tags)}</span>` : ''}</span>
       <span class="post-author" role="cell">${escapeHtml(post.author_name)}</span>
       <span class="post-date" role="cell">${formatDate(post.created_at)}</span>
       <span class="post-views" role="cell">${Number(post.view_count || 0).toLocaleString('ko-KR')}</span>
@@ -248,6 +259,7 @@ function openEditor(post = null) {
   $('#postAuthor').value = post?.author_name || currentProfile?.display_name || '';
   $('#postAuthor').readOnly = Boolean(isConfigured && currentProfile?.display_name);
   $('#postTitle').value = post?.title || '';
+  $('#postTags').value = normalizeTags(post?.tags).map((tag) => `#${tag}`).join(' ');
   $('#postContent').value = post?.content || '';
   $('#postNotice').checked = Boolean(post?.is_notice);
   $('#postNotice').disabled = Boolean(isConfigured && !roleCanEditAll());
@@ -269,6 +281,8 @@ async function openViewer(id) {
   $('#viewerCategory').textContent = selectedPost.is_notice ? '공지' : selectedPost.category;
   $('#viewerTitle').textContent = selectedPost.title;
   $('#viewerMeta').textContent = `${selectedPost.author_name} · ${formatFullDate(selectedPost.created_at)} · 조회 ${Number(selectedPost.view_count || 0).toLocaleString('ko-KR')}`;
+  $('#viewerTags').innerHTML = renderTags(selectedPost.tags);
+  $('#viewerTags').hidden = normalizeTags(selectedPost.tags).length === 0;
   $('#viewerContent').textContent = selectedPost.content;
   $('#editPostButton').hidden = !canEdit(selectedPost);
   $('#deletePostButton').hidden = !canDelete(selectedPost);
@@ -283,6 +297,7 @@ async function savePost(event) {
   const payload = {
     category: $('#postCategory').value,
     title: $('#postTitle').value.trim(),
+    tags: normalizeTags($('#postTags').value),
     content: $('#postContent').value.trim(),
     author_name: $('#postAuthor').value.trim(),
     is_notice: $('#postNotice').checked,
