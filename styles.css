@@ -57,6 +57,10 @@ a { color: inherit; text-decoration: none; }
 .compact-card { padding: 15px; }
 .compact-card strong { font-size: 12px; }
 .compact-card p { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.shortcut-link { display: flex; align-items: center; justify-content: space-between; min-height: 43px; margin: 8px; padding: 0 11px; border-radius: 9px; color: #59616d; background: #f4f5f7; font-size: 11px; font-weight: 750; transition: color .15s ease, background .15s ease; }
+.shortcut-link b { color: #9aa1ab; font-size: 12px; }
+.shortcut-link:hover { color: #fff; background: var(--accent); }
+.shortcut-link:hover b { color: rgba(255,255,255,.78); }
 
 .content { min-width: 0; }
 .hero-card { display: flex; align-items: flex-end; justify-content: space-between; min-height: 175px; padding: 28px 31px; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #3b424c, #1f2329); box-shadow: var(--shadow); }
