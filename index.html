@@ -54,11 +54,17 @@
             <span class="eyebrow" id="boardEyebrow">ALL POSTS</span>
             <h2 id="boardTitle">전체글보기</h2>
           </div>
-          <form class="search-form" id="searchForm" role="search">
-            <label class="sr-only" for="searchInput">게시글 검색</label>
-            <input id="searchInput" type="search" placeholder="제목과 내용 검색" autocomplete="off">
-            <button type="submit">검색</button>
-          </form>
+          <div class="board-controls">
+            <div class="view-toggle" role="group" aria-label="게시글 보기 방식">
+              <button class="is-active" type="button" data-view-mode="list" aria-pressed="true">목록형</button>
+              <button type="button" data-view-mode="gallery" aria-pressed="false">갤러리형</button>
+            </div>
+            <form class="search-form" id="searchForm" role="search">
+              <label class="sr-only" for="searchInput">게시글 검색</label>
+              <input id="searchInput" type="search" placeholder="제목과 내용 검색" autocomplete="off">
+              <button type="submit">검색</button>
+            </form>
+          </div>
         </div>
 
         <div class="notice-strip" id="noticeStrip" hidden></div>
