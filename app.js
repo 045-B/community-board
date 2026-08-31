@@ -26,6 +26,7 @@ const seedPosts = [
 const boardConfig = window.BOARD_CONFIG || {};
 const isConfigured = Boolean(boardConfig.supabaseUrl && boardConfig.supabaseAnonKey);
 const storageKey = 'githubCommunityBoardDemoPosts';
+const viewModeStorageKey = 'aengtamraBoardViewMode';
 const pageSize = 10;
 
 let supabase = null;
@@ -36,6 +37,7 @@ let filteredPosts = [];
 let selectedCategory = '전체글';
 let searchTerm = '';
 let currentPage = 1;
+let viewMode = localStorage.getItem(viewModeStorageKey) === 'gallery' ? 'gallery' : 'list';
 let selectedPost = null;
 let retainedImageUrls = [];
 let pendingImageFiles = [];
@@ -227,18 +229,47 @@ function renderCategories() {
 
 function renderPosts() {
   applyFilters();
-  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / pageSize));
+  const currentPageSize = viewMode === 'gallery' ? 9 : pageSize;
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / currentPageSize));
   currentPage = Math.min(currentPage, totalPages);
-  const pagePosts = filteredPosts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  $('#postList').innerHTML = pagePosts.map((post) => `
-    <div class="post-row post-item ${post.is_notice ? 'is-notice' : ''}" role="row" tabindex="0" data-post-id="${escapeHtml(post.id)}">
-      <span class="post-category" role="cell">${post.is_notice ? '공지' : escapeHtml(post.category)}</span>
-      <span class="post-title" role="cell"><span class="post-title-text">${post.is_notice ? '<span class="pin">●</span>' : ''}${post.image_urls?.length ? '<span class="image-indicator">▣</span>' : ''}${escapeHtml(post.title)}</span>${post.tags?.length ? `<span class="post-tags">${renderTags(post.tags)}</span>` : ''}</span>
-      <span class="post-author" role="cell">${escapeHtml(post.author_name)}</span>
-      <span class="post-date" role="cell">${formatDate(post.created_at)}</span>
-      <span class="post-views" role="cell">${Number(post.view_count || 0).toLocaleString('ko-KR')}</span>
-    </div>
-  `).join('');
+  const pagePosts = filteredPosts.slice((currentPage - 1) * currentPageSize, currentPage * currentPageSize);
+  const table = $('.post-table');
+  table.classList.toggle('is-gallery', viewMode === 'gallery');
+  table.setAttribute('role', viewMode === 'gallery' ? 'list' : 'table');
+  table.setAttribute('aria-label', viewMode === 'gallery' ? '게시글 갤러리' : '게시글 목록');
+  $$('.view-toggle [data-view-mode]').forEach((button) => {
+    const active = button.dataset.viewMode === viewMode;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  $('#postList').innerHTML = viewMode === 'gallery'
+    ? pagePosts.map((post) => {
+      const imageUrl = Array.isArray(post.image_urls) ? post.image_urls[0] : '';
+      const preview = String(post.content || '').replace(/\s+/g, ' ').trim();
+      return `
+        <article class="gallery-card ${post.is_notice ? 'is-notice' : ''}" role="listitem" tabindex="0" data-post-id="${escapeHtml(post.id)}">
+          <div class="gallery-thumb">
+            ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(post.title)}" loading="lazy">` : '<div class="gallery-placeholder"><span>NO IMAGE</span></div>'}
+            <span class="gallery-category">${post.is_notice ? '공지' : escapeHtml(post.category)}</span>
+          </div>
+          <div class="gallery-body">
+            <h3>${escapeHtml(post.title)}</h3>
+            ${preview ? `<p>${escapeHtml(preview)}</p>` : ''}
+            ${post.tags?.length ? `<div class="post-tags">${renderTags(post.tags)}</div>` : ''}
+            <div class="gallery-meta"><span>${escapeHtml(post.author_name)}</span><span>${formatDate(post.created_at)} · 조회 ${Number(post.view_count || 0).toLocaleString('ko-KR')}</span></div>
+          </div>
+        </article>
+      `;
+    }).join('')
+    : pagePosts.map((post) => `
+      <div class="post-row post-item ${post.is_notice ? 'is-notice' : ''}" role="row" tabindex="0" data-post-id="${escapeHtml(post.id)}">
+        <span class="post-category" role="cell">${post.is_notice ? '공지' : escapeHtml(post.category)}</span>
+        <span class="post-title" role="cell"><span class="post-title-text">${post.is_notice ? '<span class="pin">●</span>' : ''}${post.image_urls?.length ? '<span class="image-indicator">▣</span>' : ''}${escapeHtml(post.title)}</span>${post.tags?.length ? `<span class="post-tags">${renderTags(post.tags)}</span>` : ''}</span>
+        <span class="post-author" role="cell">${escapeHtml(post.author_name)}</span>
+        <span class="post-date" role="cell">${formatDate(post.created_at)}</span>
+        <span class="post-views" role="cell">${Number(post.view_count || 0).toLocaleString('ko-KR')}</span>
+      </div>
+    `).join('');
   $('#emptyState').hidden = pagePosts.length > 0;
   renderPagination(totalPages);
   renderNotices();
@@ -445,6 +476,14 @@ async function submitLogin(event) {
 }
 
 function bindEvents() {
+  $('.view-toggle').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-view-mode]');
+    if (!button || button.dataset.viewMode === viewMode) return;
+    viewMode = button.dataset.viewMode;
+    localStorage.setItem(viewModeStorageKey, viewMode);
+    currentPage = 1;
+    renderPosts();
+  });
   $('#categoryList').addEventListener('click', (event) => {
     const button = event.target.closest('[data-category]');
     if (button) setCategory(button.dataset.category);
